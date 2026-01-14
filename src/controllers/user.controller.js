@@ -3,6 +3,11 @@ import { User } from "../models/user.model.js";
 import { uploadOnCloudinary } from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import fs from "fs";
+import jwt from "jsonwebtoken";
+// import dotenv from "dotenv";
+// dotenv.config({
+//   path: "./.env",
+// });
 
 // 1) get user details from frontend.
 // 2) validation - not empty
@@ -276,4 +281,73 @@ const logoutUser = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, logoutUser };
+const refreshAccessToken = async (req, res) => {
+  try {
+    const incomingRefreshToken =
+      req.cookies.refreshToken || req.body.refreshToken;
+
+    if (!incomingRefreshToken) {
+      throw new ApiError(401, "unauthorized request");
+    }
+
+    const decodedToken = jwt.verify(
+      incomingRefreshToken,
+      process.env.REFRESH_TOKEN_SECRET
+    );
+
+    const userId = decodedToken?._id;
+
+    const user = await User.findById(userId);
+
+    if (!user) {
+      throw new ApiError(401, "invalid refresh token");
+    }
+
+    if (incomingRefreshToken !== user?.refreshToken) {
+      throw new ApiError(401, "refresh token is expired or used");
+    }
+
+    const newAccessToken = user.generateAccessToken();
+    const newRefreshToken = user.generateRefreshToken();
+
+    user.accessToken = newAccessToken;
+    user.refreshToken = newRefreshToken;
+
+    await user.save({ validateBeforeSave: false });
+
+    const cookiesOptions = {
+      httpOnly: true,
+      secure: true,
+    };
+
+    return res
+      .status(201)
+      .cookie("accessToken", newAccessToken, cookiesOptions)
+      .cookie("refreshToken", newRefreshToken, cookiesOptions)
+      .json(
+        new ApiResponse(
+          201,
+          {
+            accessToken: newAccessToken,
+            refreshToken: newRefreshToken,
+          },
+          "access token refreshed"
+        )
+      );
+  } catch (error) {
+    console.error("Error: ", error);
+
+    const statusCode = error instanceof ApiError ? error.statusCode : 500;
+
+    const message =
+      error instanceof ApiError ? error.message : "Internal Server Error";
+
+    return res.status(statusCode).json({
+      success: false,
+      message,
+      errors: error.errors || [],
+    });
+  }
+};
+
+export { registerUser, loginUser, logoutUser, refreshAccessToken };
