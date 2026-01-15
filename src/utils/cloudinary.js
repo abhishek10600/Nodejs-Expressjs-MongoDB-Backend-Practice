@@ -37,7 +37,21 @@ const uploadOnCloudinary = async (localFilePath) => {
   }
 };
 
-export { uploadOnCloudinary };
+const deleteFromCloudinary = async (imageUrl) => {
+  const imageUrlArray = imageUrl.split("/");
+  const imageNameWithExtension = imageUrlArray[imageUrlArray.length - 1];
+  const imageNameWithExtensionArray = imageNameWithExtension.split(".");
+  const imageName = imageNameWithExtensionArray[0];
+
+  try {
+    await cloudinary.uploader.destroy(imageName);
+  } catch (error) {
+    console.log("Cloudinary Error: ", error);
+    return null;
+  }
+};
+
+export { uploadOnCloudinary, deleteFromCloudinary };
 
 /*the flow:
     1) User will upload a file.
@@ -45,3 +59,5 @@ export { uploadOnCloudinary };
     3) Then we will take that file from our server and upload it to cloudinary.
     4) After uploading that file to cloudinary, we will delete that file from our server
 */
+
+// jmdxoha230ngbyntw3ue

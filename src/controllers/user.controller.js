@@ -1,6 +1,9 @@
 import { ApiError } from "../utils/ApiError.js";
 import { User } from "../models/user.model.js";
-import { uploadOnCloudinary } from "../utils/cloudinary.js";
+import {
+  uploadOnCloudinary,
+  deleteFromCloudinary,
+} from "../utils/cloudinary.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import fs from "fs";
 import jwt from "jsonwebtoken";
@@ -467,6 +470,10 @@ const updateUserAvatar = async (req, res) => {
       throw new ApiError("Avatar upload failed.");
     }
 
+    const oldAvatarUrl = req.user?.avatar;
+
+    await deleteFromCloudinary(oldAvatarUrl);
+
     const userId = req.user?._id;
     const user = await User.findByIdAndUpdate(
       userId,
@@ -513,6 +520,10 @@ const updateCoverImage = async (req, res) => {
       throw new ApiError("coverImage upload failed.");
     }
 
+    const oldCoverImageUrl = req.user?.coverImage;
+
+    await deleteFromCloudinary(oldCoverImageUrl);
+
     const userId = req.user?._id;
     const user = await User.findByIdAndUpdate(
       userId,
@@ -555,10 +566,4 @@ export {
   updateAccountDetails,
   updateUserAvatar,
   updateCoverImage,
-};
-
-const elementsOfArray = (arr) => {
-  arr.map((element) => {
-    return console.log(element);
-  });
 };
