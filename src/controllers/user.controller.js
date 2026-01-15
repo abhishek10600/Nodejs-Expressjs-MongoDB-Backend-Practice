@@ -350,4 +350,215 @@ const refreshAccessToken = async (req, res) => {
   }
 };
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken };
+const changeCurrentPassword = async (req, res) => {
+  try {
+    const { oldPassword, newPassword } = req.body;
+
+    const userId = req.user._id;
+    const user = await User.findById(userId);
+    const isOldPasswordCorrect = await user.isPasswordCorrect(oldPassword);
+
+    if (!isOldPasswordCorrect) {
+      throw new ApiError(401, "invalid old password");
+    }
+
+    user.password = newPassword;
+    await user.save({ validateBeforeSave: false });
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, "password successfully changed"));
+  } catch (error) {
+    console.error("Error: ", error);
+
+    const statusCode = error instanceof ApiError ? error.statusCode : 500;
+
+    const message =
+      error instanceof ApiError ? error.message : "Internal Server Error";
+
+    return res.status(statusCode).json({
+      success: false,
+      message,
+      errors: error.errors || [],
+    });
+  }
+};
+
+const getCurrentUser = async (req, res) => {
+  try {
+    const user = req.user;
+    return res
+      .status(200)
+      .json(new ApiResponse(200, user, "current user fetched successfull"));
+  } catch (error) {
+    console.error("Error: ", error);
+
+    const statusCode = error instanceof ApiError ? error.statusCode : 500;
+
+    const message =
+      error instanceof ApiError ? error.message : "Internal Server Error";
+
+    return res.status(statusCode).json({
+      success: false,
+      message,
+      errors: error.errors || [],
+    });
+  }
+};
+
+const updateAccountDetails = async (req, res) => {
+  try {
+    const { username, fullName, email } = req.body;
+
+    if (!username || !fullName || !email) {
+      throw new ApiError(400, "All fields are required");
+    }
+
+    const userId = req.user?._id;
+    // const user = await User.findById(user);
+
+    // user.username = username;
+    // user.fullName = fullName;
+    // user.email = email;
+    // user.save({ validateBeforeSave: true });
+
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          username,
+          fullName,
+          email,
+        },
+      },
+      { new: true }
+    ).select("-password");
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, user, "fields updated successfully"));
+  } catch (error) {
+    console.error("Error: ", error);
+
+    const statusCode = error instanceof ApiError ? error.statusCode : 500;
+
+    const message =
+      error instanceof ApiError ? error.message : "Internal Server Error";
+
+    return res.status(statusCode).json({
+      success: false,
+      message,
+      errors: error.errors || [],
+    });
+  }
+};
+
+// create another controller to update the avatar image
+const updateUserAvatar = async (req, res) => {
+  try {
+    const avatarLocalPath = req.file?.path;
+
+    if (!avatarLocalPath) {
+      throw new ApiError(400, "avatar file is missing");
+    }
+
+    const avatar = await uploadOnCloudinary(avatarLocalPath);
+    if (!avatar.url) {
+      throw new ApiError("Avatar upload failed.");
+    }
+
+    const userId = req.user?._id;
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          avatar: avatar.url,
+        },
+      },
+      {
+        new: true,
+      }
+    ).select("-password");
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, user, "avatar updated successfully"));
+  } catch (error) {
+    console.error("Error: ", error);
+
+    const statusCode = error instanceof ApiError ? error.statusCode : 500;
+
+    const message =
+      error instanceof ApiError ? error.message : "Internal Server Error";
+
+    return res.status(statusCode).json({
+      success: false,
+      message,
+      errors: error.errors || [],
+    });
+  }
+};
+
+// create another controller to update coverImage
+const updateCoverImage = async (req, res) => {
+  try {
+    const coverImageLocalPath = req.file?.path;
+
+    if (!coverImageLocalPath) {
+      throw new ApiError(400, "coverImage file is missing");
+    }
+
+    const coverImage = await uploadOnCloudinary(coverImageLocalPath);
+    if (!coverImage.url) {
+      throw new ApiError("coverImage upload failed.");
+    }
+
+    const userId = req.user?._id;
+    const user = await User.findByIdAndUpdate(
+      userId,
+      {
+        $set: {
+          coverImage: coverImage.url,
+        },
+      },
+      {
+        new: true,
+      }
+    ).select("-password");
+
+    return res
+      .status(200)
+      .json(new ApiResponse(200, user, "cover image updated successfully"));
+  } catch (error) {
+    console.error("Error: ", error);
+
+    const statusCode = error instanceof ApiError ? error.statusCode : 500;
+
+    const message =
+      error instanceof ApiError ? error.message : "Internal Server Error";
+
+    return res.status(statusCode).json({
+      success: false,
+      message,
+      errors: error.errors || [],
+    });
+  }
+};
+
+export {
+  registerUser,
+  loginUser,
+  logoutUser,
+  refreshAccessToken,
+  changeCurrentPassword,
+  getCurrentUser,
+  updateAccountDetails,
+  updateUserAvatar,
+  updateCoverImage,
+};
+
+const elementsOfArray = (arr) => {
+  arr.map((element) => {
+    return console.log(element);
+  });
+};
